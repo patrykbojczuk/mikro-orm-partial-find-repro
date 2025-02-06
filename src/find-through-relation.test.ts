@@ -1,6 +1,5 @@
 import {
   Entity,
-  Loaded,
   ManyToOne,
   MikroORM,
   PrimaryKey,
