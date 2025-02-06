@@ -1,9 +1,11 @@
 import {
   Entity,
+  Loaded,
   ManyToOne,
   MikroORM,
   PrimaryKey,
   Property,
+  WrappedEntity,
 } from '@mikro-orm/sqlite';
 
 @Entity()
@@ -46,8 +48,7 @@ afterEach(async () => {
   await orm.close(true);
 });
 
-// doesn't work
-test('find through relation > direct find', async () => {
+test('find through relation', async () => {
   const user = orm.em.create(User, { name: 'Foo', email: 'bar@example.com' });
   await orm.em.flush();
   const post = orm.em.create(Post, { title: 'Hello', author: user });
@@ -56,60 +57,15 @@ test('find through relation > direct find', async () => {
     postId = post.id;
   orm.em.clear();
 
-  const userEmailOnly = await orm.em.findOneOrFail(
+  const userEmailOnlyThroughPost = await orm.em.findOneOrFail(
     Post,
     { id: postId },
     { fields: ['author.email'] },
   );
-
-  const userNameOnly = await orm.em.findOneOrFail(
-    User,
-    { id: userId },
-    { fields: ['name'] },
-  );
-
-  expect(userEmailOnly.author.email).toBe('bar@example.com');
-  expect(userNameOnly.name).toBe('Foo');
-});
-
-// works
-test.skip('direct find > find through relation', async () => {
-  const user = orm.em.create(User, { name: 'Foo', email: 'bar@example.com' });
-  await orm.em.flush();
-  const post = orm.em.create(Post, { title: 'Hello', author: user });
-  await orm.em.flush();
-  const userId = user.id,
-    postId = post.id;
-  orm.em.clear();
-
-  const userNameOnly = await orm.em.findOneOrFail(
-    User,
-    { id: userId },
-    { fields: ['name'] },
-  );
-
-  const userEmailOnly = await orm.em.findOneOrFail(
-    Post,
-    { id: postId },
-    { fields: ['author.email'] },
-  );
-
-  expect(userEmailOnly.author.email).toBe('bar@example.com');
-  expect(userNameOnly.name).toBe('Foo');
-});
-
-// works
-test.skip('direct find > direct find', async () => {
-  const user = orm.em.create(User, { name: 'Foo', email: 'bar@example.com' });
-  await orm.em.flush();
-  const userId = user.id;
-  orm.em.clear();
-
-  const userEmailOnly = await orm.em.findOneOrFail(
-    User,
-    { id: userId },
-    { fields: ['email'] },
-  );
+  const userEmailOnly =
+    userEmailOnlyThroughPost.author as typeof userEmailOnlyThroughPost.author & {
+      __helper: WrappedEntity<User>;
+    };
 
   const userNameOnly = await orm.em.findOneOrFail(
     User,
@@ -118,5 +74,7 @@ test.skip('direct find > direct find', async () => {
   );
 
   expect(userEmailOnly.email).toBe('bar@example.com');
+  expect(userEmailOnly.__helper.__loadedProperties.has('name')).toBe(false);
+
   expect(userNameOnly.name).toBe('Foo');
 });
