@@ -66,14 +66,14 @@ test('find through relation', async () => {
       __helper: WrappedEntity<User>;
     };
 
+  expect(userEmailOnly.email).toBe('bar@example.com');
+  expect(userEmailOnly.__helper.__loadedProperties.has('name')).toBe(false);
+
   const userNameOnly = await orm.em.findOneOrFail(
     User,
     { id: userId },
     { fields: ['name'] },
   );
-
-  expect(userEmailOnly.email).toBe('bar@example.com');
-  expect(userEmailOnly.__helper.__loadedProperties.has('name')).toBe(false);
 
   expect(userNameOnly.name).toBe('Foo');
 });
